@@ -1,0 +1,2033 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>百年之后 2126 — 人类生活全景AI沉浸式体验</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+/* ========== 基础重置与全局变量 ========== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #050510;
+  --bg-card: rgba(10, 15, 40, 0.65);
+  --cyan: #00f0ff;
+  --magenta: #ff00e4;
+  --gold: #ffd700;
+  --white: #e8eaf6;
+  --dim: #6a6f9a;
+  --font-display: 'Orbitron', sans-serif;
+  --font-body: 'Noto Sans SC', sans-serif;
+  --glow-cyan: 0 0 20px rgba(0,240,255,.5), 0 0 60px rgba(0,240,255,.2);
+  --glow-magenta: 0 0 20px rgba(255,0,228,.5), 0 0 60px rgba(255,0,228,.2);
+  --glow-gold: 0 0 20px rgba(255,215,0,.5), 0 0 60px rgba(255,215,0,.2);
+  --glass: rgba(10,15,40,0.55);
+  --glass-border: rgba(0,240,255,0.15);
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--white);
+  overflow-x: hidden;
+  line-height: 1.7;
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 3px; }
+
+/* ========== 扫描线覆盖 ========== */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,240,255,0.015) 2px,
+    rgba(0,240,255,0.015) 4px
+  );
+}
+
+/* ========== 导航栏 ========== */
+.navbar {
+  position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
+  padding: 16px 40px;
+  display: flex; justify-content: space-between; align-items: center;
+  transition: background .4s, backdrop-filter .4s;
+}
+.navbar.scrolled {
+  background: rgba(5,5,16,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
+}
+.nav-logo {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan);
+  text-decoration: none;
+}
+.nav-links { display: flex; gap: 28px; list-style: none; }
+.nav-links a {
+  color: var(--dim);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-family: var(--font-display);
+  transition: color .3s;
+  letter-spacing: 1px;
+}
+.nav-links a:hover { color: var(--cyan); text-shadow: var(--glow-cyan); }
+
+/* ========== 通用工具类 ========== */
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4vw, 2.8rem);
+  text-align: center;
+  margin-bottom: 12px;
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan);
+}
+.section-subtitle {
+  text-align: center;
+  color: var(--dim);
+  font-size: 0.95rem;
+  margin-bottom: 60px;
+}
+section { padding: 100px 20px; position: relative; }
+.container { max-width: 1200px; margin: 0 auto; }
+
+/* 玻璃卡片 */
+.glass-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  padding: 28px;
+  transition: transform .35s, box-shadow .35s, border-color .35s;
+}
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--glow-cyan);
+  border-color: var(--cyan);
+}
+
+/* 滚动动画 */
+.reveal {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity .8s ease, transform .8s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-60px);
+  transition: opacity .8s ease, transform .8s ease;
+}
+.reveal-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+.reveal-right {
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity .8s ease, transform .8s ease;
+}
+.reveal-right.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* 3D Canvas容器 */
+.scene-canvas {
+  width: 100%;
+  height: 320px;
+  border-radius: 12px;
+  display: block;
+  cursor: grab;
+}
+.scene-canvas:active { cursor: grabbing; }
+
+/* ========== 场景交互控制按钮 ========== */
+.scene-controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.scene-btn {
+  background: linear-gradient(135deg, var(--cyan), var(--magenta));
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: transform .2s, box-shadow .2s;
+}
+.scene-btn:hover {
+  transform: scale(1.05);
+  box-shadow: var(--glow-cyan);
+}
+.scene-btn.active {
+  background: linear-gradient(135deg, var(--gold), var(--cyan));
+  box-shadow: var(--glow-gold);
+}
+.scene-status {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  color: var(--cyan);
+  margin-top: 8px;
+  min-height: 18px;
+}
+
+/* ========== 真实图片场景容器 ========== */
+.scene-image-wrap {
+  width: 100%;
+  height: 320px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+  position: relative;
+  background: #000;
+}
+.scene-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .5s ease;
+}
+.scene-image-wrap:hover img {
+  transform: scale(1.05);
+}
+
+/* 扫描线动画 */
+.scene-image-wrap .scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  box-shadow: 0 0 20px var(--cyan);
+  opacity: 0;
+  pointer-events: none;
+}
+.scene-image-wrap.scanning .scan-line {
+  animation: scanMove 2s linear infinite;
+  opacity: 1;
+}
+@keyframes scanMove {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+
+/* 能量爆发 - 亮度脉冲 */
+.scene-image-wrap.energy-burst img {
+  animation: energyPulse .5s ease 3;
+}
+@keyframes energyPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(2) saturate(1.5); }
+}
+
+/* 全息投影 - 色差分离 */
+.scene-image-wrap.hologram img {
+  animation: hologramShift 1s ease infinite;
+}
+@keyframes hologramShift {
+  0%, 100% { filter: none; }
+  25% { filter: drop-shadow(-3px 0 0 rgba(255,0,228,.6)) drop-shadow(3px 0 0 rgba(0,240,255,.6)); }
+  75% { filter: drop-shadow(3px 0 0 rgba(255,0,228,.6)) drop-shadow(-3px 0 0 rgba(0,240,255,.6)); }
+}
+
+/* 360°旋转展示 */
+.scene-image-wrap.rotating img {
+  animation: rotate360 3s linear infinite;
+}
+@keyframes rotate360 {
+  0% { transform: perspective(600px) rotateY(0deg) scale(1.1); }
+  100% { transform: perspective(600px) rotateY(360deg) scale(1.1); }
+}
+
+/* 粒子化/数字化效果 */
+.scene-image-wrap.digitalize img {
+  animation: digitalPixel 1.5s ease infinite;
+}
+@keyframes digitalPixel {
+  0%, 100% { filter: none; }
+  50% { filter: contrast(2) brightness(1.2); }
+}
+
+/* 传送效果 - 模糊+位移 */
+.scene-image-wrap.teleport img {
+  animation: teleportBlur .8s ease 3;
+}
+@keyframes teleportBlur {
+  0%, 100% { filter: none; transform: scale(1); }
+  50% { filter: blur(8px) brightness(2); transform: scale(1.1); }
+}
+
+/* 分子组装 - 从模糊到清晰 */
+.scene-image-wrap.assemble img {
+  animation: assembleFocus 2s ease;
+}
+@keyframes assembleFocus {
+  0% { filter: blur(20px) brightness(0.3); transform: scale(0.9); }
+  100% { filter: blur(0) brightness(1); transform: scale(1); }
+}
+
+/* 社交互动 - 柔和发光 */
+.scene-image-wrap.socialize img {
+  animation: socialGlow 2s ease infinite;
+}
+@keyframes socialGlow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3) saturate(1.2); }
+}
+
+/* 航线规划 - 网格扫描 */
+.scene-image-wrap.planning::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 20px,
+    rgba(0,240,255,0.1) 20px,
+    rgba(0,240,255,0.1) 21px
+  ), repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 20px,
+    rgba(0,240,255,0.1) 20px,
+    rgba(0,240,255,0.1) 21px
+  );
+  pointer-events: none;
+  animation: gridFade 2s ease infinite;
+}
+@keyframes gridFade {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+/* ========== 数字孪生3D全息叠加层 ========== */
+.scene-image-wrap .holo-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  mix-blend-mode: screen;
+  opacity: 0.6;
+  transition: opacity 0.5s;
+}
+.scene-image-wrap:hover .holo-canvas,
+.scene-image-wrap.active .holo-canvas {
+  opacity: 1;
+}
+
+/* 数字孪生网格覆盖 */
+.scene-image-wrap .dt-grid {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.5s;
+  background:
+    linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+.scene-image-wrap.active .dt-grid {
+  opacity: 1;
+  animation: gridPulse 2s ease infinite;
+}
+@keyframes gridPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+/* 数据标签 */
+.dt-label {
+  position: absolute;
+  z-index: 3;
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  color: var(--cyan);
+  padding: 2px 8px;
+  border: 1px solid rgba(0,240,255,0.3);
+  border-radius: 4px;
+  background: rgba(0,10,20,0.7);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: all 0.5s;
+}
+.scene-image-wrap.active .dt-label {
+  opacity: 1;
+  transform: translateY(0);
+}
+.dt-label.top-left { top: 8px; left: 8px; }
+.dt-label.top-right { top: 8px; right: 8px; }
+.dt-label.bottom-left { bottom: 8px; left: 8px; }
+.dt-label.bottom-right { bottom: 8px; right: 8px; }
+
+/* ========== HERO区域 ========== */
+#hero {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+#hero-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+}
+.hero-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+.hero-year {
+  font-family: var(--font-display);
+  font-size: clamp(5rem, 15vw, 12rem);
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--cyan), var(--magenta), var(--gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 16px;
+  animation: heroPulse 4s ease-in-out infinite;
+}
+@keyframes heroPulse {
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 30px rgba(0,240,255,.4)); }
+  50% { filter: brightness(1.2) drop-shadow(0 0 60px rgba(255,0,228,.5)); }
+}
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 6vw, 4.5rem);
+  font-weight: 900;
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan), 0 0 120px rgba(0,240,255,.3);
+  margin-bottom: 20px;
+  letter-spacing: 8px;
+}
+.hero-desc {
+  font-size: clamp(0.9rem, 2vw, 1.15rem);
+  color: var(--dim);
+  max-width: 600px;
+  margin: 0 auto 40px;
+  line-height: 1.8;
+}
+.scroll-indicator {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--cyan);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 3px;
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+@keyframes scrollBounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(12px); }
+}
+.scroll-indicator .arrow {
+  width: 20px; height: 20px;
+  border-right: 2px solid var(--cyan);
+  border-bottom: 2px solid var(--cyan);
+  transform: rotate(45deg);
+}
+
+/* ========== 百年里程碑时间线 ========== */
+#milestones { background: linear-gradient(180deg, var(--bg) 0%, #0a0a2e 50%, var(--bg) 100%); }
+.timeline {
+  position: relative;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, var(--cyan), var(--magenta), var(--gold), transparent);
+  transform: translateX(-50%);
+}
+.timeline-node {
+  display: flex;
+  align-items: center;
+  margin-bottom: 100px;
+  position: relative;
+}
+.timeline-node:nth-child(odd) { flex-direction: row; }
+.timeline-node:nth-child(even) { flex-direction: row-reverse; }
+.timeline-node .node-content {
+  width: 45%;
+  padding: 0 30px;
+}
+.timeline-node:nth-child(odd) .node-content { text-align: right; padding-right: 40px; }
+.timeline-node:nth-child(even) .node-content { text-align: left; padding-left: 40px; }
+.timeline-node .node-scene {
+  width: 45%;
+  padding: 0 30px;
+}
+.timeline-node:nth-child(odd) .node-scene { padding-left: 40px; }
+.timeline-node:nth-child(even) .node-scene { padding-right: 40px; }
+.timeline-dot {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: var(--glow-cyan);
+  z-index: 2;
+}
+.timeline-dot::before {
+  content: '';
+  position: absolute;
+  top: -6px; left: -6px;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--cyan);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0; }
+}
+.node-year {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: var(--glow-gold);
+  margin-bottom: 8px;
+}
+.node-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--cyan);
+  margin-bottom: 12px;
+  letter-spacing: 2px;
+}
+.node-desc {
+  color: var(--dim);
+  font-size: 0.9rem;
+  line-height: 1.8;
+}
+
+/* ========== 2126年的一天 ========== */
+#daylife { background: linear-gradient(180deg, var(--bg) 0%, #0d0520 50%, var(--bg) 100%); }
+.day-timeline {
+  position: relative;
+  max-width: 800px;
+  margin: 0 auto;
+  padding-left: 60px;
+}
+.day-timeline::before {
+  content: '';
+  position: absolute;
+  left: 24px;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--cyan), var(--magenta), var(--gold), var(--cyan));
+}
+.day-node {
+  position: relative;
+  margin-bottom: 80px;
+}
+.day-node .day-dot {
+  position: absolute;
+  left: -44px;
+  top: 20px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--magenta);
+  box-shadow: var(--glow-magenta);
+}
+.day-time {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--gold);
+  text-shadow: var(--glow-gold);
+  margin-bottom: 8px;
+}
+.day-label {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--cyan);
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+
+/* ========== 科技图鉴 ========== */
+#techguide { background: linear-gradient(180deg, var(--bg) 0%, #050520 50%, var(--bg) 100%); }
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+.tech-card {
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.tech-card .tech-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  display: block;
+}
+.tech-card .tech-name {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--cyan);
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+.tech-card .tech-year-badge {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  color: var(--gold);
+  background: rgba(255,215,0,0.1);
+  border: 1px solid rgba(255,215,0,0.3);
+  border-radius: 20px;
+  padding: 2px 12px;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+.tech-card .tech-desc {
+  color: var(--dim);
+  font-size: 0.82rem;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+.progress-bar-wrap {
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  height: 8px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--cyan), var(--magenta));
+  width: 0;
+  transition: width 1.5s ease;
+}
+.progress-label {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  color: var(--dim);
+  margin-top: 6px;
+  text-align: right;
+}
+
+/* ========== 平行未来分支 ========== */
+#future-branch { background: linear-gradient(180deg, var(--bg) 0%, #100520 50%, var(--bg) 100%); }
+.branch-group {
+  max-width: 800px;
+  margin: 0 auto 60px;
+  text-align: center;
+}
+.branch-group h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--dim);
+  margin-bottom: 24px;
+  letter-spacing: 2px;
+}
+.branch-vs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.branch-option {
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform .3s, box-shadow .3s;
+}
+.branch-option:hover {
+  transform: scale(1.03);
+}
+.branch-option.selected {
+  border-color: var(--cyan) !important;
+  box-shadow: var(--glow-cyan) !important;
+}
+.branch-option .option-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--cyan);
+  margin-bottom: 8px;
+}
+.branch-option .option-desc {
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+.vs-badge {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--magenta);
+  text-shadow: var(--glow-magenta);
+  flex-shrink: 0;
+}
+.branch-result {
+  max-width: 800px;
+  margin: 40px auto 0;
+  display: none;
+}
+.branch-result.show { display: block; }
+.branch-result .story-text {
+  color: var(--white);
+  font-size: 0.95rem;
+  line-height: 2;
+  padding: 30px;
+}
+
+/* ========== 个人未来画像 ========== */
+#profile { background: linear-gradient(180deg, var(--bg) 0%, #0a0520 50%, var(--bg) 100%); }
+.profile-form {
+  max-width: 500px;
+  margin: 0 auto 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.profile-form label {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  color: var(--cyan);
+  letter-spacing: 1px;
+}
+.profile-form input, .profile-form select {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color .3s, box-shadow .3s;
+}
+.profile-form input:focus, .profile-form select:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px rgba(0,240,255,0.2);
+}
+.profile-form select option { background: #0a0a2e; color: var(--white); }
+.btn-generate {
+  background: linear-gradient(135deg, var(--cyan), var(--magenta));
+  border: none;
+  border-radius: 8px;
+  padding: 14px 32px;
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 2px;
+  transition: transform .3s, box-shadow .3s;
+  align-self: center;
+  margin-top: 8px;
+}
+.btn-generate:hover {
+  transform: scale(1.05);
+  box-shadow: var(--glow-cyan);
+}
+.profile-result {
+  max-width: 700px;
+  margin: 0 auto;
+  display: none;
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.profile-result.show { display: block; }
+.profile-result .profile-bg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+}
+.profile-result .profile-bg-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: screen;
+  opacity: 0.4;
+}
+.profile-result > *:not(.profile-bg):not(.profile-bg-canvas) {
+  position: relative;
+  z-index: 2;
+}
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.profile-avatar {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--magenta));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--bg);
+  flex-shrink: 0;
+}
+.profile-info h3 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--cyan);
+}
+.profile-info p {
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-item {
+  text-align: center;
+  padding: 16px;
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: var(--glow-gold);
+}
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--dim);
+  margin-top: 4px;
+}
+.profile-story {
+  color: var(--white);
+  font-size: 0.92rem;
+  line-height: 2;
+  padding: 20px 0;
+  border-top: 1px solid var(--glass-border);
+}
+
+/* ========== 页脚 ========== */
+footer {
+  text-align: center;
+  padding: 60px 20px;
+  border-top: 1px solid var(--glass-border);
+  color: var(--dim);
+  font-size: 0.8rem;
+}
+footer .footer-logo {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan);
+  margin-bottom: 12px;
+}
+footer a { color: var(--cyan); text-decoration: none; }
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .timeline::before { left: 20px; }
+  .timeline-node,
+  .timeline-node:nth-child(odd),
+  .timeline-node:nth-child(even) {
+    flex-direction: column !important;
+    align-items: flex-start;
+    padding-left: 50px;
+  }
+  .timeline-node .node-content,
+  .timeline-node .node-scene,
+  .timeline-node:nth-child(odd) .node-content,
+  .timeline-node:nth-child(even) .node-content,
+  .timeline-node:nth-child(odd) .node-scene,
+  .timeline-node:nth-child(even) .node-scene {
+    width: 100%;
+    text-align: left !important;
+    padding: 0;
+  }
+  .timeline-dot {
+    left: 20px !important;
+    width: 14px; height: 14px;
+  }
+  .profile-stats { grid-template-columns: 1fr; }
+  .branch-vs { flex-direction: column; }
+  .vs-badge { transform: rotate(90deg); }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== 导航栏 ==================== -->
+<nav class="navbar" id="navbar">
+  <a href="#hero" class="nav-logo">2126</a>
+  <ul class="nav-links">
+    <li><a href="#milestones">里程碑</a></li>
+    <li><a href="#daylife">一天</a></li>
+    <li><a href="#techguide">科技图鉴</a></li>
+    <li><a href="#future-branch">未来分支</a></li>
+    <li><a href="#profile">个人画像</a></li>
+  </ul>
+</nav>
+
+<!-- ==================== HERO区域 ==================== -->
+<section id="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-content">
+    <div class="hero-year">2126</div>
+    <h1 class="hero-title">百 年 之 后</h1>
+    <p class="hero-desc">从2026到2126，人类将经历可控核聚变、脑机接口、量子计算、火星殖民、数字永生与星际旅行。这是一场穿越百年的沉浸式未来之旅。</p>
+  </div>
+  <div class="scroll-indicator">
+    <span>SCROLL</span>
+    <div class="arrow"></div>
+  </div>
+</section>
+
+<!-- ==================== 百年里程碑时间线 ==================== -->
+<section id="milestones">
+  <div class="container">
+    <h2 class="section-title reveal">百年里程碑</h2>
+    <p class="section-subtitle reveal">七大技术突破，重塑人类文明</p>
+
+    <div class="timeline">
+      <!-- 节点1: 2028 可控核聚变 -->
+      <div class="timeline-node">
+        <div class="node-content reveal-left">
+          <div class="node-year">2028</div>
+          <div class="node-title">可控核聚变</div>
+          <div class="node-desc">人类首次实现持续可控核聚变反应，获得近乎无限的清洁能源。托卡马克装置成功维持等离子体超过1000秒，能源危机宣告终结，全球进入"无限能源时代"。</div>
+        </div>
+        <div class="node-scene reveal-right">
+          <div class="scene-image-wrap" id="wrap-fusion">
+            <img src="images/tech-fusion.jpg" alt="可控核聚变">
+            <canvas class="holo-canvas" id="holo-fusion"></canvas>
+            <div class="scan-line"></div>
+          </div>
+          <div class="scene-controls">
+            <button class="scene-btn" onclick="triggerImgEffect('fusion','explode')">💥 能量爆发</button>
+            <button class="scene-btn" onclick="triggerImgEffect('fusion','scan')">📡 全扫描</button>
+            <button class="scene-btn" onclick="triggerImgEffect('fusion','rotate')">🔄 360°展示</button>
+          </div>
+          <div class="scene-status" id="status-fusion"></div>
+        </div>
+        <div class="timeline-dot"></div>
+      </div>
+
+      <!-- 节点2: 2030 脑机接口 -->
+      <div class="timeline-node">
+        <div class="node-content reveal-right">
+          <div class="node-year">2030</div>
+          <div class="node-title">脑机接口商用</div>
+          <div class="node-desc">非侵入式脑机接口设备正式商用，人类可以通过思维直接操控数字设备。思维速度与数字世界无缝连接，信息获取效率提升1000倍，人机融合迈出关键一步。</div>
+        </div>
+        <div class="node-scene reveal-left">
+          <div class="scene-image-wrap" id="wrap-bci">
+            <img src="images/tech-bci.jpg" alt="脑机接口">
+            <canvas class="holo-canvas" id="holo-bci"></canvas>
+            <div class="scan-line"></div>
+          </div>
+          <div class="scene-controls">
+            <button class="scene-btn" onclick="triggerImgEffect('bci','explode')">&#128165; 神经爆发</button>
+            <button class="scene-btn" onclick="triggerImgEffect('bci','scan')">&#128225; 脑扫描</button>
+            <button class="scene-btn" onclick="triggerImgEffect('bci','rotate')">&#128260; 360°展示</button>
+          </div>
+          <div class="scene-status" id="status-bci"></div>
+        </div>
+        <div class="timeline-dot"></div>
+      </div>
+
+      <!-- 节点3: 2033 机器人伴侣 -->
+      <div class="timeline-node">
+        <div class="node-content reveal-left">
+          <div class="node-year">2033</div>
+          <div class="node-title">机器人伴侣</div>
+          <div class="node-desc">具备情感理解与自主决策能力的人形机器人正式进入家庭。它们能识别情绪、参与对话、提供陪伴，成为人类生活中不可或缺的伙伴，重新定义"家庭"的含义。</div>
+        </div>
+        <div class="node-scene reveal-right">
+          <div class="scene-image-wrap" id="wrap-robot">
+            <img src="images/tech-robot.jpg" alt="机器人伴侣">
+            <canvas class="holo-canvas" id="holo-robot"></canvas>
+            <div class="scan-line"></div>
+          </div>
+          <div class="scene-controls">
+            <button class="scene-btn" onclick="triggerImgEffect('robot','hologram')">&#10024; 全息投影</button>
+            <button class="scene-btn" onclick="triggerImgEffect('robot','scan')">&#128225; 全身扫描</button>
+            <button class="scene-btn" onclick="triggerImgEffect('robot','rotate')">&#128260; 360°展示</button>
+          </div>
+          <div class="scene-status" id="status-robot"></div>
+        </div>
+        <div class="timeline-dot"></div>
+      </div>
+
+      <!-- 节点4: 2045 量子计算 -->
+      <div class="timeline-node">
+        <div class="node-content reveal-right">
+          <div class="node-year">2045</div>
+          <div class="node-title">量子计算普及</div>
+          <div class="node-desc">百万量子比特处理器问世，量子计算从实验室走向千家万户。药物研发周期从10年缩短至1天，气候模型精确到街道级别，密码学迎来全面革新。</div>
+        </div>
+        <div class="node-scene reveal-left">
+          <div class="scene-image-wrap" id="wrap-quantum">
+            <img src="images/tech-quantum.jpg" alt="量子计算">
+            <canvas class="holo-canvas" id="holo-quantum"></canvas>
+            <div class="scan-line"></div>
+          </div>
+          <div class="scene-controls">
+            <button class="scene-btn" onclick="triggerImgEffect('quantum','explode')">&#128165; 量子爆发</button>
+            <button class="scene-btn" onclick="triggerImgEffect('quantum','scan')">&#128225; 纠缠扫描</button>
+            <button class="scene-btn" onclick="triggerImgEffect('quantum','rotate')">&#128260; 360°展示</button>
+          </div>
+          <div class="scene-status" id="status-quantum"></div>
+        </div>
+        <div class="timeline-dot"></div>
+      </div>
+
+      <!-- 节点5: 2060 火星城市 -->
+      <div class="timeline-node">
+        <div class="node-content reveal-left">
+          <div class="node-year">2060</div>
+          <div class="node-title">火星城市建立</div>
+          <div class="node-desc">火星上第一座永久性城市"新曙光"建成，可容纳10万居民。穹顶生态系统实现自给自足，地球与火星之间的定期航班开通，人类正式成为多星球物种。</div>
+        </div>
+        <div class="node-scene reveal-right">
+          <div class="scene-image-wrap" id="wrap-mars">
+            <img src="images/tech-mars.jpg" alt="火星城市">
+            <canvas class="holo-canvas" id="holo-mars"></canvas>
+            <div class="scan-line"></div>
+          </div>
+          <div class="scene-controls">
+            <button class="scene-btn" onclick="triggerImgEffect('mars','explode')">&#128165; 城市点亮</button>
+            <button class="scene-btn" onclick="triggerImgEffect('mars','scan')">&#128225; 地表扫描</button>
+            <button class="scene-btn" onclick="triggerImgEffect('mars','rotate')">&#128260; 环绕飞行</button>
+          </div>
+          <div class="scene-status" id="status-mars"></div>
+        </div>
+        <div class="timeline-dot"></div>
+      </div>
+
+      <!-- 节点6: 2085 数字永生 -->
+      <div class="timeline-node">
+        <div class="node-content reveal-right">
+          <div class="node-year">2085</div>
+          <div class="node-title">数字永生实现</div>
+          <div class="node-desc">完整的人类意识上传技术成熟，个人记忆、性格与思维模式可被完整数字化。人类首次突破生物学限制，在数字世界中实现"永生"，生死边界被彻底重新定义。</div>
+        </div>
+        <div class="node-scene reveal-left">
+          <div class="scene-image-wrap" id="wrap-digital">
+            <img src="images/tech-digital.jpg" alt="数字永生">
+            <canvas class="holo-canvas" id="holo-digital"></canvas>
+            <div class="scan-line"></div>
+          </div>
+          <div class="scene-controls">
+            <button class="scene-btn" onclick="triggerImgEffect('digital','explode')">&#128165; 意识爆发</button>
+            <button class="scene-btn" onclick="triggerImgEffect('digital','scan')">&#128225; 数字化扫描</button>
+            <button class="scene-btn" onclick="triggerImgEffect('digital','rotate')">&#128260; 360°展示</button>
+          </div>
+          <div class="scene-status" id="status-digital"></div>
+        </div>
+        <div class="timeline-dot"></div>
+      </div>
+
+      <!-- 节点7: 2110 星际旅行 -->
+      <div class="timeline-node">
+        <div class="node-content reveal-left">
+          <div class="node-year">2110</div>
+          <div class="node-title">星际旅行开启</div>
+          <div class="node-desc">曲速引擎原型机试飞成功，人类首次突破光速限制。阿尔法半人马座探索计划启动，星际旅行不再是科幻，人类文明进入银河纪元。</div>
+        </div>
+        <div class="node-scene reveal-right">
+          <div class="scene-image-wrap" id="wrap-starship">
+            <img src="images/tech-spaceship.jpg" alt="星际旅行">
+            <canvas class="holo-canvas" id="holo-starship"></canvas>
+            <div class="scan-line"></div>
+          </div>
+          <div class="scene-controls">
+            <button class="scene-btn" onclick="triggerImgEffect('starship','explode')">&#128165; 引擎爆发</button>
+            <button class="scene-btn" onclick="triggerImgEffect('starship','scan')">&#128225; 飞船扫描</button>
+            <button class="scene-btn" onclick="triggerImgEffect('starship','rotate')">&#128260; 翻滚旋转</button>
+          </div>
+          <div class="scene-status" id="status-starship"></div>
+        </div>
+        <div class="timeline-dot"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 2126年的一天 ==================== -->
+<section id="daylife">
+  <div class="container">
+    <h2 class="section-title reveal">2126年的一天</h2>
+    <p class="section-subtitle reveal">穿越到未来，体验百年后人类的日常生活</p>
+
+    <div class="day-timeline">
+      <!-- 06:00 -->
+      <div class="day-node reveal">
+        <div class="day-dot"></div>
+        <div class="day-time">06:00</div>
+        <div class="day-label">AI健康管家唤醒</div>
+        <div class="scene-image-wrap" id="wrap-wake">
+          <img src="images/scene-wake.jpg" alt="AI健康管家唤醒">
+          <canvas class="holo-canvas" id="holo-wake"></canvas>
+          <div class="scan-line"></div>
+        </div>
+        <div class="scene-controls">
+          <button class="scene-btn" onclick="triggerImgEffect('wake','hologram')">&#10024; 全息唤醒</button>
+          <button class="scene-btn" onclick="triggerImgEffect('wake','scan')">&#128202; 健康扫描</button>
+        </div>
+        <div class="scene-status" id="status-wake"></div>
+        <div class="glass-card" style="margin-top:16px">
+          <p class="node-desc">全息投影屏幕从天花板缓缓降下，AI管家"晨曦"用柔和的声音唤醒你。它已经分析了你昨晚的睡眠数据、体温变化和脑波活动，为你定制了今天的健康方案。空气中弥漫着由分子合成器释放的提神香氛。</p>
+        </div>
+      </div>
+
+      <!-- 07:30 -->
+      <div class="day-node reveal">
+        <div class="day-dot"></div>
+        <div class="day-time">07:30</div>
+        <div class="day-label">量子通勤</div>
+        <div class="scene-image-wrap" id="wrap-commute">
+          <img src="images/scene-commute.jpg" alt="量子通勤">
+          <canvas class="holo-canvas" id="holo-commute"></canvas>
+          <div class="scan-line"></div>
+        </div>
+        <div class="scene-controls">
+          <button class="scene-btn" onclick="triggerImgEffect('commute','teleport')">&#9889; 传送加速</button>
+          <button class="scene-btn" onclick="triggerImgEffect('commute','scan')">&#128225; 传输舱扫描</button>
+        </div>
+        <div class="scene-status" id="status-commute"></div>
+        <div class="glass-card" style="margin-top:16px">
+          <p class="node-desc">走进量子传输舱，身体在一瞬间被分解为量子态信息，跨越数千公里后在目的地重组。整个过程不到3秒，你从上海的家中直接传送到了月球科研基地的办公室。通勤已成为历史名词。</p>
+        </div>
+      </div>
+
+      <!-- 09:00 -->
+      <div class="day-node reveal">
+        <div class="day-dot"></div>
+        <div class="day-time">09:00</div>
+        <div class="day-label">脑机协作办公</div>
+        <div class="scene-image-wrap" id="wrap-work">
+          <img src="images/scene-work.jpg" alt="脑机协作办公">
+          <canvas class="holo-canvas" id="holo-work"></canvas>
+          <div class="scan-line"></div>
+        </div>
+        <div class="scene-controls">
+          <button class="scene-btn" onclick="triggerImgEffect('work','hologram')">&#10024; 全息展开</button>
+          <button class="scene-btn" onclick="triggerImgEffect('work','scan')">&#128202; 数据流扫描</button>
+        </div>
+        <div class="scene-status" id="status-work"></div>
+        <div class="glass-card" style="margin-top:16px">
+          <p class="node-desc">脑机接口自动连接到全息工作台，你通过思维直接操控三维数据模型。与火星团队的虚拟会议中，每个人以全息投影的形式出现。创意和想法在脑际网络中实时共享，工作效率是人类时代的100倍。</p>
+        </div>
+      </div>
+
+      <!-- 12:00 -->
+      <div class="day-node reveal">
+        <div class="day-dot"></div>
+        <div class="day-time">12:00</div>
+        <div class="day-label">分子合成午餐</div>
+        <div class="scene-image-wrap" id="wrap-lunch">
+          <img src="images/scene-lunch.jpg" alt="分子合成午餐">
+          <canvas class="holo-canvas" id="holo-lunch"></canvas>
+          <div class="scan-line"></div>
+        </div>
+        <div class="scene-controls">
+          <button class="scene-btn" onclick="triggerImgEffect('lunch','assemble')">&#9889; 分子加速</button>
+          <button class="scene-btn" onclick="triggerImgEffect('lunch','scan')">&#128225; 合成器扫描</button>
+        </div>
+        <div class="scene-status" id="status-lunch"></div>
+        <div class="glass-card" style="margin-top:16px">
+          <p class="node-desc">午餐不再需要烹饪。分子合成器根据你的营养需求和口味偏好，在30秒内从基本分子层面组装出完美的料理。今天的菜单是"分子法式鹅肝配量子蓝莓酱"——味道与顶级餐厅完全一致，营养却经过精确计算。</p>
+        </div>
+      </div>
+
+      <!-- 18:00 -->
+      <div class="day-node reveal">
+        <div class="day-dot"></div>
+        <div class="day-time">18:00</div>
+        <div class="day-label">虚拟社交空间</div>
+        <div class="scene-image-wrap" id="wrap-social">
+          <img src="images/scene-social.jpg" alt="虚拟社交空间">
+          <canvas class="holo-canvas" id="holo-social"></canvas>
+          <div class="scan-line"></div>
+        </div>
+        <div class="scene-controls">
+          <button class="scene-btn" onclick="triggerImgEffect('social','socialize')">&#128107; 虚拟互动</button>
+          <button class="scene-btn" onclick="triggerImgEffect('social','hologram')">&#10024; 花园全息</button>
+        </div>
+        <div class="scene-status" id="status-social"></div>
+        <div class="glass-card" style="margin-top:16px">
+          <p class="node-desc">进入虚拟社交空间，你选择了一个漂浮在土星环上的花园场景。朋友们从地球、火星和太空站以全息投影的形式相聚。你们在虚拟花园中散步聊天，感受着模拟的微风和花香，距离不再是社交的障碍。</p>
+        </div>
+      </div>
+
+      <!-- 21:00 -->
+      <div class="day-node reveal">
+        <div class="day-dot"></div>
+        <div class="day-time">21:00</div>
+        <div class="day-label">太空旅游规划</div>
+        <div class="scene-image-wrap" id="wrap-travel">
+          <img src="images/scene-travel.jpg" alt="太空旅游规划">
+          <canvas class="holo-canvas" id="holo-travel"></canvas>
+          <div class="scan-line"></div>
+        </div>
+        <div class="scene-controls">
+          <button class="scene-btn" onclick="triggerImgEffect('travel','plan')">&#128200; 航线绘制</button>
+          <button class="scene-btn" onclick="triggerImgEffect('travel','explode')">&#128165; 引擎启动</button>
+        </div>
+        <div class="scene-status" id="status-travel"></div>
+        <div class="glass-card" style="margin-top:16px">
+          <p class="node-desc">睡前，你在全息屏幕上规划下个月的太空旅行。这次的目的地是木星的欧罗巴海洋世界。AI旅行助手为你推荐了最佳航线和体验项目：深海潜水、冰层徒步和外星生物观察。太空旅行已成为2126年最流行的度假方式。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 科技图鉴 ==================== -->
+<section id="techguide">
+  <div class="container">
+    <h2 class="section-title reveal">科技图鉴</h2>
+    <p class="section-subtitle reveal">2126年改变人类生活的核心技术</p>
+
+    <div class="tech-grid">
+      <div class="glass-card tech-card reveal">
+        <span class="tech-icon">&#x26A1;</span>
+        <div class="tech-name">可控核聚变</div>
+        <span class="tech-year-badge">2028</span>
+        <p class="tech-desc">无限清洁能源，终结化石燃料时代，为所有技术突破提供能源基础</p>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" data-width="98"></div></div>
+        <div class="progress-label">成熟度 98%</div>
+      </div>
+      <div class="glass-card tech-card reveal">
+        <span class="tech-icon">&#x1F9E0;</span>
+        <div class="tech-name">脑机接口</div>
+        <span class="tech-year-badge">2030</span>
+        <p class="tech-desc">思维操控数字世界，信息获取效率提升千倍，人机融合的新纪元</p>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" data-width="95"></div></div>
+        <div class="progress-label">成熟度 95%</div>
+      </div>
+      <div class="glass-card tech-card reveal">
+        <span class="tech-icon">&#x1F916;</span>
+        <div class="tech-name">机器人伴侣</div>
+        <span class="tech-year-badge">2033</span>
+        <p class="tech-desc">情感理解与自主决策，重新定义家庭与陪伴，人机共生新范式</p>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" data-width="92"></div></div>
+        <div class="progress-label">成熟度 92%</div>
+      </div>
+      <div class="glass-card tech-card reveal">
+        <span class="tech-icon">&#x1F52C;</span>
+        <div class="tech-name">量子计算</div>
+        <span class="tech-year-badge">2045</span>
+        <p class="tech-desc">百万量子比特，药物研发从10年到1天，计算能力指数级跃升</p>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" data-width="88"></div></div>
+        <div class="progress-label">成熟度 88%</div>
+      </div>
+      <div class="glass-card tech-card reveal">
+        <span class="tech-icon">&#x1F3D9;</span>
+        <div class="tech-name">火星殖民</div>
+        <span class="tech-year-badge">2060</span>
+        <p class="tech-desc">穹顶城市自给自足，地球-火星航班常态化，多星球物种时代</p>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" data-width="75"></div></div>
+        <div class="progress-label">成熟度 75%</div>
+      </div>
+      <div class="glass-card tech-card reveal">
+        <span class="tech-icon">&#x1F4BE;</span>
+        <div class="tech-name">数字永生</div>
+        <span class="tech-year-badge">2085</span>
+        <p class="tech-desc">意识完整上传，突破生物学限制，生死边界被重新定义</p>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" data-width="70"></div></div>
+        <div class="progress-label">成熟度 70%</div>
+      </div>
+      <div class="glass-card tech-card reveal">
+        <span class="tech-icon">&#x1F680;</span>
+        <div class="tech-name">星际旅行</div>
+        <span class="tech-year-badge">2110</span>
+        <p class="tech-desc">曲速引擎突破光速限制，阿尔法半人马座探索启动，银河纪元开启</p>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" data-width="55"></div></div>
+        <div class="progress-label">成熟度 55%</div>
+      </div>
+      <div class="glass-card tech-card reveal">
+        <span class="tech-icon">&#x1F9EC;</span>
+        <div class="tech-name">基因编辑</div>
+        <span class="tech-year-badge">2035</span>
+        <p class="tech-desc">精准基因编辑消除遗传疾病，人类平均寿命突破150岁，定制化健康方案</p>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" data-width="90"></div></div>
+        <div class="progress-label">成熟度 90%</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 平行未来分支选择 ==================== -->
+<section id="future-branch">
+  <div class="container">
+    <h2 class="section-title reveal">平行未来</h2>
+    <p class="section-subtitle reveal">选择你心中的未来方向，探索不同的人类命运</p>
+
+    <div class="branch-group reveal">
+      <h3>进化之路</h3>
+      <div class="branch-vs">
+        <div class="glass-card branch-option" data-group="evolution" data-choice="gene" onclick="selectBranch(this)">
+          <div class="option-title">基因增强</div>
+          <div class="option-desc">通过基因编辑技术增强人类体能和智力，创造"超人类"物种。寿命延长至200岁，智力提升10倍，但可能加剧社会不平等。</div>
+        </div>
+        <div class="vs-badge">VS</div>
+        <div class="glass-card branch-option" data-group="evolution" data-choice="natural" onclick="selectBranch(this)">
+          <div class="option-title">自然进化</div>
+          <div class="option-desc">坚持自然进化道路，依靠环境和生活方式的改变来推动人类进化。虽然进程缓慢，但保持了人类物种的完整性和多样性。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="branch-group reveal">
+      <h3>生命形态</h3>
+      <div class="branch-vs">
+        <div class="glass-card branch-option" data-group="life" data-choice="digital" onclick="selectBranch(this)">
+          <div class="option-title">数字永生</div>
+          <div class="option-desc">将意识上传至数字世界，摆脱肉体束缚，在虚拟空间中永生。可以体验无限种生活，但可能失去真实世界的触感。</div>
+        </div>
+        <div class="vs-badge">VS</div>
+        <div class="glass-card branch-option" data-group="life" data-choice="finite" onclick="selectBranch(this)">
+          <div class="option-title">有限生命</div>
+          <div class="option-desc">接受生命的有限性，将精力投入到创造有意义的体验中。生命的珍贵恰恰来自它的有限，每一刻都值得珍惜。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="branch-result glass-card" id="branch-result">
+      <div class="story-text" id="branch-story"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 个人未来画像 ==================== -->
+<section id="profile">
+  <div class="container">
+    <h2 class="section-title reveal">个人未来画像</h2>
+    <p class="section-subtitle reveal">输入你的信息，AI为你推演2126年的生活</p>
+
+    <div class="profile-form reveal">
+      <label>你的名字</label>
+      <input type="text" id="profile-name" placeholder="请输入你的名字" maxlength="20">
+      <label>职业方向</label>
+      <select id="profile-career">
+        <option value="">请选择</option>
+        <option value="tech">科技研发</option>
+        <option value="medical">医疗健康</option>
+        <option value="art">艺术创作</option>
+        <option value="education">教育</option>
+        <option value="business">商业创业</option>
+        <option value="explore">太空探索</option>
+      </select>
+      <label>最感兴趣的科技</label>
+      <select id="profile-tech">
+        <option value="">请选择</option>
+        <option value="fusion">可控核聚变</option>
+        <option value="bci">脑机接口</option>
+        <option value="quantum">量子计算</option>
+        <option value="mars">火星殖民</option>
+        <option value="digital">数字永生</option>
+        <option value="star">星际旅行</option>
+      </select>
+      <button class="btn-generate" onclick="generateProfile()">生成未来画像</button>
+    </div>
+
+    <div class="profile-result glass-card" id="profile-result">
+      <img class="profile-bg" src="images/profile-bg.jpg" alt="未来画像背景">
+      <canvas class="profile-bg-canvas" id="holo-profile"></canvas>
+      <div class="profile-header">
+        <div class="profile-avatar" id="profile-avatar-char"></div>
+        <div class="profile-info">
+          <h3 id="profile-result-name"></h3>
+          <p id="profile-result-title"></p>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="glass-card stat-item">
+          <div class="stat-value" id="stat-lifespan"></div>
+          <div class="stat-label">预期寿命</div>
+        </div>
+        <div class="glass-card stat-item">
+          <div class="stat-value" id="stat-location"></div>
+          <div class="stat-label">居住地</div>
+        </div>
+        <div class="glass-card stat-item">
+          <div class="stat-value" id="stat-field"></div>
+          <div class="stat-label">工作领域</div>
+        </div>
+      </div>
+      <div class="profile-story" id="profile-story"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 页脚 ==================== -->
+<footer>
+  <div class="footer-logo">2126 // 百年之后</div>
+  <p>TRAE AI创造力大赛初赛作品</p>
+  <p style="margin-top:8px">Powered by Three.js &middot; 纯前端沉浸式体验</p>
+  <p style="margin-top:16px; color: var(--cyan);">
+    <a href="#hero">回到顶部</a>
+  </p>
+</footer>
+
+<!-- ==================== Three.js CDN ==================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+/* ================================================================
+   全局工具函数
+   ================================================================ */
+
+/** 图片纹理加载工具函数 - 只加载一次，失败时返回null */
+function loadTexture(url, callback) {
+  const loader = new THREE.TextureLoader();
+  loader.load(
+    url,
+    (texture) => {
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      callback(texture);
+    },
+    undefined,
+    () => {
+      console.warn('纹理加载失败: ' + url + '，将使用默认效果');
+      callback(null);
+    }
+  );
+}
+
+/** 图片场景特效触发（含数字孪生3D叠加） */
+function triggerImgEffect(sceneId, effectType) {
+  const wrap = document.getElementById('wrap-' + sceneId);
+  const statusEl = document.getElementById('status-' + sceneId);
+  if (!wrap) return;
+
+  // 清除之前的特效类
+  wrap.classList.remove('energy-burst', 'scanning', 'rotating', 'hologram', 'digitalize', 'teleport', 'assemble', 'socialize', 'planning', 'active');
+
+  // 添加active类激活3D叠加层
+  wrap.classList.add('active');
+
+  // 根据特效类型添加对应类名
+  const effectMap = {
+    explode: 'energy-burst',
+    scan: 'scanning',
+    rotate: 'rotating',
+    hologram: 'hologram',
+    digitalize: 'digitalize',
+    teleport: 'teleport',
+    assemble: 'assemble',
+    socialize: 'socialize',
+    plan: 'planning'
+  };
+
+  const className = effectMap[effectType];
+  if (className) {
+    wrap.classList.add(className);
+  }
+
+  // 增强3D叠加层强度
+  if (holoScenes[sceneId]) {
+    holoScenes[sceneId].setIntensity(3);
+  }
+
+  if (statusEl) {
+    statusEl.textContent = '正在执行: ' + getEffectName(effectType) + '...';
+    statusEl.style.color = 'var(--gold)';
+  }
+
+  // 4秒后清除特效
+  setTimeout(() => {
+    wrap.classList.remove('energy-burst', 'scanning', 'rotating', 'hologram', 'digitalize', 'teleport', 'assemble', 'socialize', 'planning', 'active');
+    if (holoScenes[sceneId]) {
+      holoScenes[sceneId].setIntensity(1);
+    }
+    if (statusEl) {
+      statusEl.textContent = '演示完成 ✓';
+      statusEl.style.color = 'var(--cyan)';
+    }
+  }, 4000);
+}
+
+/** 兼容旧调用的特效触发 */
+function triggerEffect(sceneId, effectType) {
+  triggerImgEffect(sceneId, effectType);
+}
+
+/** 获取特效名称 */
+function getEffectName(type) {
+  const names = {
+    explode: '能量爆发', scan: '全扫描', rotate: '360°展示',
+    hologram: '全息投影', teleport: '量子传送', assemble: '分子组装',
+    socialize: '虚拟社交', plan: '航线规划'
+  };
+  return names[type] || type;
+}
+
+// ========== 数字孪生3D全息叠加系统 ==========
+const holoScenes = {};
+
+function initHoloOverlay(canvasId, config) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || canvas.dataset.holoInit) return;
+  canvas.dataset.holoInit = 'true';
+
+  const parent = canvas.parentElement;
+  const w = parent.clientWidth || 400;
+  const h = parent.clientHeight || 320;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 100);
+  camera.position.z = 5;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+
+  // 根据config创建不同的3D效果
+  const objects = [];
+
+  if (config.type === 'particles') {
+    // 漂浮粒子
+    const count = config.count || 200;
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 10;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 6;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 4;
+      const c = new THREE.Color(config.color || '#00f0ff');
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const mat = new THREE.PointsMaterial({
+      size: config.size || 0.05,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending
+    });
+    const points = new THREE.Points(geo, mat);
+    scene.add(points);
+    objects.push({ mesh: points, type: 'particles', positions });
+  }
+
+  if (config.type === 'ring') {
+    // 旋转环
+    const ringGeo = new THREE.TorusGeometry(2, 0.02, 16, 100);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: config.color || '#00f0ff',
+      transparent: true,
+      opacity: 0.6
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    scene.add(ring);
+    objects.push({ mesh: ring, type: 'ring' });
+
+    if (config.doubleRing) {
+      const ring2 = ring.clone();
+      ring2.rotation.x = Math.PI / 3;
+      ring2.rotation.y = Math.PI / 4;
+      scene.add(ring2);
+      objects.push({ mesh: ring2, type: 'ring' });
+    }
+  }
+
+  if (config.type === 'grid') {
+    // 3D网格地面
+    const gridHelper = new THREE.GridHelper(10, 20, config.color || '#00f0ff', '#1a1a3a');
+    gridHelper.position.y = -2;
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.3;
+    scene.add(gridHelper);
+    objects.push({ mesh: gridHelper, type: 'grid' });
+  }
+
+  if (config.type === 'wireframe') {
+    // 线框模型
+    const geo = config.geometry || new THREE.IcosahedronGeometry(1.5, 1);
+    const mat = new THREE.MeshBasicMaterial({
+      color: config.color || '#00f0ff',
+      wireframe: true,
+      transparent: true,
+      opacity: 0.4
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    scene.add(mesh);
+    objects.push({ mesh, type: 'wireframe' });
+  }
+
+  if (config.type === 'dataStream') {
+    // 数据流线条
+    for (let i = 0; i < 8; i++) {
+      const points = [];
+      for (let j = 0; j < 20; j++) {
+        points.push(new THREE.Vector3(
+          (Math.random() - 0.5) * 8,
+          (j / 20 - 0.5) * 6,
+          (Math.random() - 0.5) * 2
+        ));
+      }
+      const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+      const lineMat = new THREE.LineBasicMaterial({
+        color: config.color || '#00f0ff',
+        transparent: true,
+        opacity: 0.3
+      });
+      const line = new THREE.Line(lineGeo, lineMat);
+      scene.add(line);
+      objects.push({ mesh: line, type: 'dataStream', baseY: (Math.random() - 0.5) * 4 });
+    }
+  }
+
+  let animationId = null;
+  let t = 0;
+  let intensity = 1;
+
+  function animate() {
+    animationId = requestAnimationFrame(animate);
+    t += 0.01 * intensity;
+
+    objects.forEach(obj => {
+      switch (obj.type) {
+        case 'particles':
+          obj.mesh.rotation.y = t * 0.3;
+          if (obj.positions) {
+            for (let i = 0; i < obj.positions.length; i += 3) {
+              obj.positions[i + 1] += Math.sin(t + i) * 0.002;
+            }
+            obj.mesh.geometry.attributes.position.needsUpdate = true;
+          }
+          break;
+        case 'ring':
+          obj.mesh.rotation.z = t * 0.5;
+          obj.mesh.rotation.x += 0.002;
+          break;
+        case 'wireframe':
+          obj.mesh.rotation.x = t * 0.3;
+          obj.mesh.rotation.y = t * 0.5;
+          break;
+        case 'dataStream':
+          obj.mesh.position.y = Math.sin(t * 2 + obj.baseY) * 0.5;
+          obj.mesh.material.opacity = 0.2 + Math.sin(t * 3 + obj.baseY) * 0.15;
+          break;
+      }
+    });
+
+    renderer.render(scene, camera);
+  }
+
+  // 用IntersectionObserver控制
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        if (!animationId) animate();
+      } else {
+        if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+      }
+    });
+  }, { threshold: 0.1 });
+  observer.observe(canvas);
+
+  // 渲染第一帧
+  if (objects.length > 0) {
+    animate();
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+
+  // 返回控制接口
+  holoScenes[canvasId.replace('holo-', '')] = {
+    setIntensity(val) { intensity = val; },
+    getScene() { return scene; }
+  };
+}
+
+// 初始化所有全息叠加层
+function initAllHoloOverlays() {
+  // 里程碑节点
+  initHoloOverlay('holo-fusion', { type: 'ring', color: '#ffd700', doubleRing: true });
+  initHoloOverlay('holo-bci', { type: 'particles', count: 300, color: '#ff00e4', size: 0.04 });
+  initHoloOverlay('holo-robot', { type: 'wireframe', color: '#00f0ff', geometry: new THREE.IcosahedronGeometry(1.2, 0) });
+  initHoloOverlay('holo-quantum', { type: 'particles', count: 150, color: '#00f0ff', size: 0.08 });
+  initHoloOverlay('holo-mars', { type: 'grid', color: '#ff6600' });
+  initHoloOverlay('holo-digital', { type: 'particles', count: 400, color: '#ff00e4', size: 0.03 });
+  initHoloOverlay('holo-starship', { type: 'dataStream', color: '#00f0ff' });
+
+  // 日常场景
+  initHoloOverlay('holo-wake', { type: 'particles', count: 100, color: '#00ffcc', size: 0.03 });
+  initHoloOverlay('holo-commute', { type: 'ring', color: '#00f0ff', doubleRing: false });
+  initHoloOverlay('holo-work', { type: 'dataStream', color: '#00f0ff' });
+  initHoloOverlay('holo-lunch', { type: 'particles', count: 80, color: '#ffd700', size: 0.04 });
+  initHoloOverlay('holo-social', { type: 'wireframe', color: '#ff00e4', geometry: new THREE.OctahedronGeometry(1, 0) });
+  initHoloOverlay('holo-travel', { type: 'ring', color: '#ffd700', doubleRing: true });
+
+  // 未来画像
+  initHoloOverlay('holo-profile', { type: 'particles', count: 200, color: '#00f0ff', size: 0.03 });
+}
+
+// 页面加载后初始化
+window.addEventListener('load', initAllHoloOverlays);
+
+/** 创建3D场景的通用工厂函数，使用IntersectionObserver控制渲染 */
+function createScene(canvasId, initFn) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || canvas.dataset.initialized) return;
+  canvas.dataset.initialized = 'true';
+
+  const scene = new THREE.Scene();
+  const w = canvas.clientWidth || 400, h = canvas.clientHeight || 300;
+  const camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+
+  const updateFn = initFn(scene, camera, renderer);
+  let animationId = null;
+  let isVisible = false;
+
+  function animate() {
+    animationId = requestAnimationFrame(animate);
+    if (updateFn) updateFn();
+    renderer.render(scene, camera);
+  }
+
+  // 立即渲染一帧，确保场景可见
+  if (updateFn) updateFn();
+  renderer.render(scene, camera);
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        isVisible = true;
+        if (!animationId) animate();
+      } else {
+        isVisible = false;
+        if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+      }
+    });
+  }, { threshold: 0.1 });
+  observer.observe(canvas);
+
+  // 3秒后如果仍未进入视口，也启动动画（确保用户能看到）
+  setTimeout(() => {
+    if (!isVisible && !animationId) {
+      animate();
+    }
+  }, 3000);
+}
+
+/* ================================================================
+   1. Hero 星空粒子背景
+   ================================================================ */
+(function initHero() {
+  const canvas = document.getElementById('hero-canvas');
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.z = 500;
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  // 星星粒子
+  const starCount = 1500;
+  const starGeo = new THREE.BufferGeometry();
+  const positions = new Float32Array(starCount * 3);
+  const sizes = new Float32Array(starCount);
+  for (let i = 0; i < starCount; i++) {
+    positions[i * 3] = (Math.random() - 0.5) * 1600;
+    positions[i * 3 + 1] = (Math.random() - 0.5) * 1600;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 1600;
+    sizes[i] = Math.random() * 3 + 1;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  starGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+  const starMat = new THREE.PointsMaterial({
+    color: 0x00f0ff,
+    size: 2,
+    transparent: true,
+    opacity: 0.8,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true
+  });
+  const stars = new THREE.Points(starGeo, starMat);
+  scene.add(stars);
+
+  // 连线
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.12 });
+  let lineGeo = new THREE.BufferGeometry();
+  const linesMesh = new THREE.LineSegments(lineGeo, lineMat);
+  scene.add(linesMesh);
+
+  let time = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    time += 0.003;
+    stars.rotation.y = time * 0.05;
+    stars.rotation.x = Math.sin(time * 0.3) * 0.02;
+
+    // 闪烁效果
+    const posArr = starGeo.attributes.position.array;
+    starMat.opacity = 0.6 + Math.sin(time * 2) * 0.2;
+
+    // 更新连线（只连接近距离星星）
+    const linePositions = [];
+    const threshold = 80;
+    for (let i = 0; i < Math.min(starCount, 200); i++) {
+      for (let j = i + 1; j < Math.min(starCount, 200); j++) {
+        const dx = posArr[i*3] - posArr[j*3];
+        const dy = posArr[i*3+1] - posArr[j*3+1];
+        const dz = posArr[i*3+2] - posArr[j*3+2];
+        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        if (dist < threshold) {
+          linePositions.push(posArr[i*3], posArr[i*3+1], posArr[i*3+2]);
+          linePositions.push(posArr[j*3], posArr[j*3+1], posArr[j*3+2]);
+        }
+      }
+    }
+    linesMesh.geometry.dispose();
+    linesMesh.geometry = new THREE.BufferGeometry();
+    if (linePositions.length > 0) {
+      linesMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+    }
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+
+/* ================================================================
+   4. 滚动动画 & 导航栏效果
+   ================================================================ */
+
+// IntersectionObserver for reveal animations
+const revealObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => {
+  revealObserver.observe(el);
+});
+
+// 导航栏滚动效果
+window.addEventListener('scroll', () => {
+  const navbar = document.getElementById('navbar');
+  if (window.scrollY > 80) {
+    navbar.classList.add('scrolled');
+  } else {
+    navbar.classList.remove('scrolled');
+  }
+});
+
+/* ================================================================
+   5. 科技图鉴进度条动画
+   ================================================================ */
+const progressObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const bar = entry.target.querySelector('.progress-bar-fill');
+      if (bar) {
+        bar.style.width = bar.dataset.width + '%';
+      }
+    }
+  });
+}, { threshold: 0.5 });
+
+document.querySelectorAll('.tech-card').forEach(card => {
+  progressObserver.observe(card);
+});
+
+/* ================================================================
+   6. 平行未来分支选择逻辑
+   ================================================================ */
+const branchSelections = {};
+
+function selectBranch(el) {
+  const group = el.dataset.group;
+  const choice = el.dataset.choice;
+
+  // 取消同组其他选中
+  document.querySelectorAll(`.branch-option[data-group="${group}"]`).forEach(opt => {
+    opt.classList.remove('selected');
+  });
+  el.classList.add('selected');
+  branchSelections[group] = choice;
+
+  // 如果两组都选了，生成故事
+  if (branchSelections.evolution && branchSelections.life) {
+    generateBranchStory();
+  }
+}
+
+function generateBranchStory() {
+  const stories = {
+    'gene-digital': '在2126年，你是一个经过基因增强的"超人类"，拥有200年的预期寿命和超越常人10倍的智力。你的意识同时存在于物理世界和数字空间中——白天以增强肉身探索火星的荒野，夜晚将意识上传到虚拟宇宙中与已故亲人的数字化身相聚。你既是进化的巅峰，也是永生的先驱。然而，你时常思考：当一切都可以被修改和保存，什么才是真正属于"自我"的东西？',
+    'gene-finite': '在2126年，基因增强技术让你拥有超乎想象的体能和智力，但你选择了有限的生命。你相信生命的意义恰恰来自它的有限——正因为时间有限，每一个选择、每一次体验才弥足珍贵。你用150年的寿命创造了无数伟大的作品，探索了三个星球，爱过、失去过、重新开始过。当终幕降临时，你微笑着说："我活过了。"',
+    'natural-digital': '在2126年，你坚持自然进化的道路，没有接受任何基因增强。但当你年迈时，你选择了意识上传，以数字形态继续你未竟的探索。在虚拟世界中，你以原始人类的视角观察着被基因增强的"超人类"社会，成为了连接两个时代的活历史。你的数字图书馆保存着从2026年到2126年每一年的真实记忆。',
+    'natural-finite': '在2126年，你是最纯粹的"原人"——没有基因增强，没有意识上传，完全依靠自然进化的身体和智慧。你选择在地球上的一座古老森林中生活，用最原始的方式感受世界的美好。你是这个时代最后的浪漫主义者，证明了即使没有技术的加持，人类的灵魂依然可以如此丰富而深邃。'
+  };
+
+  const key = branchSelections.evolution + '-' + branchSelections.life;
+  const story = stories[key] || '你的选择将开创一条全新的未来道路...';
+
+  const resultEl = document.getElementById('branch-result');
+  const storyEl = document.getElementById('branch-story');
+  storyEl.textContent = story;
+  resultEl.classList.add('show');
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* ================================================================
+   7. 个人未来画像生成逻辑
+   ================================================================ */
+function generateProfile() {
+  const name = document.getElementById('profile-name').value.trim() || '未来旅者';
+  const career = document.getElementById('profile-career').value || 'tech';
+  const tech = document.getElementById('profile-tech').value || 'quantum';
+
+  const careerMap = {
+    tech: '量子架构师', medical: '基因修复专家', art: '全息艺术创作者',
+    education: '意识传承导师', business: '星际贸易商', explore: '深空探索者'
+  };
+  const locationMap = {
+    tech: '火星·新曙光', medical: '地球·新东京', art: '月球·静海城',
+    education: '空间站·天宫', business: '小行星带·自由港', explore: '飞船·远征号'
+  };
+  const lifespanMap = {
+    tech: '185岁', medical: '210岁', art: '175岁',
+    education: '195岁', business: '180岁', explore: '165岁'
+  };
+  const fieldMap = {
+    tech: '量子计算', medical: '基因编辑', art: '全息艺术',
+    education: '知识传承', business: '星际经济', explore: '深空探索'
+  };
+  const techNameMap = {
+    fusion: '可控核聚变', bci: '脑机接口', quantum: '量子计算',
+    mars: '火星殖民', digital: '数字永生', star: '星际旅行'
+  };
+
+  const title = careerMap[career];
+  const location = locationMap[career];
+  const lifespan = lifespanMap[career];
+  const field = fieldMap[career];
+  const techName = techNameMap[tech];
+
+  document.getElementById('profile-avatar-char').textContent = name.charAt(0);
+  document.getElementById('profile-result-name').textContent = name;
+  document.getElementById('profile-result-title').textContent = `2126年 · ${title}`;
+  document.getElementById('stat-lifespan').textContent = lifespan;
+  document.getElementById('stat-location').textContent = location;
+  document.getElementById('stat-field').textContent = field;
+
+  const stories = {
+    tech: `${name}，在2126年，你是一名顶尖的量子架构师，居住在火星"新曙光"城的量子计算中心。每天清晨，你的脑机接口自动连接到城市的主量子网络，通过思维直接操控百万量子比特处理器。你正在设计下一代量子AI的核心架构，这将使人工智能的推理能力再提升1000倍。你对${techName}技术充满热情，经常参与相关项目的研发。在工作之余，你喜欢通过全息投影与地球上的老朋友聊天，虽然相隔数亿公里，但量子通信让你们的对话如同面对面一般流畅。`,
+    medical: `${name}，在2126年，你是一名基因修复专家，在地球"新东京"的基因治疗中心工作。你的日常工作是使用CRISPR-X技术为患者修复遗传缺陷——这项在2035年就被攻克的技术，如今已经精确到单个碱基的水平。你对${techName}技术的发展保持着密切关注，因为每一次技术突破都可能为你的工作带来新的工具。你的患者来自太阳系各地，有些人甚至是从火星专程来到地球接受你的治疗。`,
+    art: `${name}，在2126年，你是一名全息艺术创作者，生活在月球"静海城"的艺术区。你使用脑机接口直接将脑海中的画面转化为全息三维作品，观众可以走进你的画作中，感受每一笔色彩和光影。你对${techName}技术特别着迷，经常将其元素融入你的艺术创作中。你的最新作品"量子花园"在太阳系巡回展出，让无数人感受到了科技与艺术的完美融合。`,
+    education: `${name}，在2126年，你是一名意识传承导师，在"天宫"空间站的知识殿堂工作。你负责将人类数千年的知识和智慧通过脑机接口直接传递给新一代学习者。一堂课不再是45分钟的讲授，而是一次深度的意识体验——学生们可以"亲身经历"历史事件，"感受"科学发现的瞬间。你对${techName}技术的理解让你能够设计出更加沉浸式的学习体验。`,
+    business: `${name}，在2126年，你是一名星际贸易商，常驻小行星带"自由港"——太阳系最繁忙的贸易枢纽。你的业务横跨地球、火星、小行星带和木星卫星，每天处理的交易量相当于2026年全球GDP的千分之一。${techName}技术是你商业帝国的重要支柱，你投资了多家相关企业，并推动着跨星球贸易标准的制定。`,
+    explore: `${name}，在2126年，你是一名深空探索者，目前正驾驶"远征号"飞船在太阳系边缘执行探索任务。你的飞船配备了最先进的${techName}系统，让你能够到达前人从未涉足的领域。你的日常是在未知星域中绘制星图、采集样本、寻找可能的生命迹象。虽然远离地球，但通过量子通信，你依然能和家人保持联系。`
+  };
+
+  document.getElementById('profile-story').textContent = stories[career];
+
+  const resultEl = document.getElementById('profile-result');
+  resultEl.classList.add('show');
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ================================================================
+   8. 窗口resize处理
+   ================================================================ */
+window.addEventListener('resize', () => {
+  document.querySelectorAll('.scene-canvas').forEach(canvas => {
+    if (canvas.dataset.initialized) {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      // Three.js renderer会在下一帧自动适配
+    }
+  });
+});
+</script>
+</body>
+</html>
